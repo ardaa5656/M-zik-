@@ -1,405 +1,144 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SonicCompress Pro | Tarayıcı İçi Güçlü Ses Sıkıştırıcı</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FFmpeg WebAssembly Test</title>
+
+  <!-- GitHub Pages için SharedArrayBuffer (COOP/COEP) desteği sağlar -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/coi-serviceworker/0.1.7/coi-serviceworker.min.js"></script>
+
+  <!-- FFmpeg 0.12 UMD Kütüphaneleri -->
+  <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+
   <style>
-    :root {
-      --bg: #090d16;
-      --card-bg: rgba(17, 24, 39, 0.85);
-      --border: rgba(255, 255, 255, 0.08);
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --accent: #06b6d4;
-      --success: #10b981;
-      --text: #f3f4f6;
-      --muted: #94a3b8;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
     body {
-      background-color: var(--bg);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.12) 0px, transparent 50%);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 680px;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      background: rgba(99, 102, 241, 0.12);
-      border: 1px solid rgba(99, 102, 241, 0.25);
-      color: #a5b4fc;
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      margin-bottom: 12px;
-    }
-
-    .header h1 {
-      font-size: 2.2rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
-    }
-
-    .header p {
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    .card {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 32px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-    }
-
-    /* Drag & Drop Zone */
-    .drop-zone {
-      border: 2px dashed rgba(99, 102, 241, 0.4);
-      border-radius: 16px;
-      padding: 36px 20px;
-      text-align: center;
-      cursor: pointer;
-      background: rgba(99, 102, 241, 0.03);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-    }
-
-    .drop-zone:hover, .drop-zone.drag-active {
-      background: rgba(99, 102, 241, 0.08);
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
-
-    .drop-zone input {
-      display: none;
-    }
-
-    .icon-box {
-      width: 56px;
-      height: 56px;
-      margin: 0 auto 14px;
-      background: rgba(99, 102, 241, 0.15);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #818cf8;
-      font-size: 26px;
-    }
-
-    .drop-title {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .drop-sub {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .file-details {
-      display: none;
-      margin-top: 14px;
-      padding: 10px 16px;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 10px;
-      font-size: 0.88rem;
-      color: #38bdf8;
-      font-weight: 500;
-      word-break: break-all;
-    }
-
-    /* Settings Grid */
-    .settings-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin: 24px 0;
-    }
-
-    @media (max-width: 540px) {
-      .settings-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .field label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    select {
-      width: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #0f172a;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 12px 14px;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.2s;
+      color: #f8fafc;
+      padding: 24px;
+      margin: 0;
     }
-
-    select:focus {
-      border-color: var(--primary);
-    }
-
-    /* Action Button */
-    .btn-main {
-      width: 100%;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-      color: #ffffff;
-      border: none;
-      padding: 16px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      transition: all 0.2s;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-    }
-
-    .btn-main:hover {
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-      transform: translateY(-1px);
-    }
-
-    .btn-main:disabled {
-      background: #334155;
-      box-shadow: none;
-      cursor: not-allowed;
-      transform: none;
-      opacity: 0.6;
-    }
-
-    /* Progress & Status */
-    .progress-container {
-      display: none;
-      margin-top: 24px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-    }
-
-    .progress-info {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-bottom: 10px;
-      font-weight: 500;
-    }
-
-    .progress-track {
-      width: 100%;
-      height: 8px;
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
       background: #1e293b;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      border-radius: 999px;
-      transition: width 0.2s ease;
-    }
-
-    /* Results & Audio Comparison */
-    .results-area {
-      display: none;
-      margin-top: 24px;
-      animation: fadeIn 0.3s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .stats-card {
-      background: rgba(16, 185, 129, 0.08);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      padding: 16px;
+      padding: 20px;
       border-radius: 12px;
-      display: flex;
-      justify-content: space-around;
-      text-align: center;
-      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
-
-    .stat-item .stat-label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-transform: uppercase;
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      font-size: 14px;
       font-weight: 600;
-      margin-bottom: 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-
-    .stat-item .stat-value {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: #34d399;
+    button:hover {
+      background: #2563eb;
     }
-
-    .players-box {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
+    button:disabled {
+      background: #475569;
+      cursor: not-allowed;
     }
-
-    .player-row {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #38bdf8;
+    }
+    #logs {
+      margin-top: 15px;
+      background: #090d16;
+      border: 1px solid #334155;
+      border-radius: 8px;
       padding: 12px;
-    }
-
-    .player-label {
-      font-size: 0.8rem;
-      color: var(--muted);
-      font-weight: 600;
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    audio {
-      width: 100%;
-      height: 36px;
-      outline: none;
-    }
-
-    .btn-download {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      background: var(--success);
-      color: #ffffff;
-      text-decoration: none;
-      padding: 16px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 1rem;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-      transition: all 0.2s;
-    }
-
-    .btn-download:hover {
-      background: #059669;
-      transform: translateY(-1px);
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #a5f3fc;
     }
   </style>
-
-  <!-- FFmpeg.wasm & Utils -->
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js"></script>
-  <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
 </head>
 <body>
 
   <div class="container">
-    <div class="header">
-      <div class="badge">⚡ WASM Powered Core</div>
-      <h1>SonicCompress Pro</h1>
-      <p>Sunucuya yükleme yok. Dosyalar cihazınızda güvende kalır.</p>
-    </div>
+    <h2>FFmpeg.wasm Çalışma Testi</h2>
+    <p>Worker ve WASM dosyaları Blob URL üzerinden GitHub Pages ile tam uyumlu yüklenir.</p>
 
-    <div class="card">
-      <!-- Drag & Drop -->
-      <div class="drop-zone" id="dropZone">
-        <div class="icon-box">🎵</div>
-        <div class="drop-title">Ses dosyasını seçin veya sürükleyin</div>
-        <div class="drop-sub">MP3, WAV, M4A, AAC, FLAC, OGG destekler</div>
-        <div class="file-details" id="fileDetails"></div>
-        <input type="file" id="fileInput" accept="audio/*">
-      </div>
+    <button id="loadBtn" onclick="initFFmpeg()">FFmpeg Yükle</button>
+    <div id="status">Durum: Bekleniyor...</div>
+    <div id="logs">Loglar burada görünecek...</div>
+  </div>
 
-      <!-- Settings -->
-      <div class="settings-grid">
-        <div class="field">
-          <label for="quality">Hedef Bitrate</label>
-          <select id="quality">
-            <option value="48k">48 kbps (Ultra Tasarruf - Ses Kayıtları)</option>
-            <option value="64k">64 kbps (Düşük Boyut - Podcast)</option>
-            <option value="96k" selected>96 kbps (Dengeli / Standart)</option>
-            <option value="128k">128 kbps (Müzik Kalitesi)</option>
-            <option value="192k">192 kbps (Yüksek Kalite)</option>
-          </select>
-        </div>
+  <script>
+    const statusEl = document.getElementById("status");
+    const logsEl = document.getElementById("logs");
+    const loadBtn = document.getElementById("loadBtn");
 
-        <div class="field">
-          <label for="format">Çıktı Formatı</label>
-          <select id="format">
-            <option value="mp3" selected>MP3 (En Uyumlu)</option>
-            <option value="m4a">M4A (AAC - Yüksek Verim)</option>
-            <option value="ogg">OGG (Opus)</option>
-          </select>
-        </div>
+    function log(message) {
+      logsEl.textContent += message + "\n";
+      logsEl.scrollTop = logsEl.scrollHeight;
+    }
 
-        <div class="field">
-          <label for="channels">Ses Kanalı</label>
-          <select id="channels">
-            <option value="same" selected>Orijinali Koru</option>
-            <option value="1">Mono (Boyutu %50 Düşürür)</option>
-            <option value="2">Stereo</option>
+    async function initFFmpeg() {
+      loadBtn.disabled = true;
+      statusEl.textContent = "FFmpeg dosyaları indiriliyor ve Blob'a dönüştürülüyor...";
+
+      try {
+        const { FFmpeg } = FFmpegWASM;
+        const { toBlobURL } = FFmpegUtil;
+
+        const ffmpeg = new FFmpeg();
+
+        // FFmpeg loglarını yakala
+        ffmpeg.on("log", ({ message }) => {
+          log(`[FFmpeg] ${message}`);
+        });
+
+        // Yükleme ilerleme durumu
+        ffmpeg.on("progress", ({ progress }) => {
+          statusEl.textContent = `İlerleme: %${Math.round(progress * 100)}`;
+        });
+
+        // 0.12.10 UMD çekirdek adresleri
+        const coreBaseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+        const ffmpegBaseURL = "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd";
+
+        log("Worker ve WASM dosyaları dönüştürülüyor...");
+
+        // Hatanın sebebi olan worker dosyasını ve çekirdek dosyalarını Blob URL yapıyoruz
+        await ffmpeg.load({
+          classWorkerURL: await toBlobURL(`${ffmpegBaseURL}/814.ffmpeg.js`, "text/javascript"),
+          coreURL: await toBlobURL(`${coreBaseURL}/ffmpeg-core.js`, "text/javascript"),
+          wasmURL: await toBlobURL(`${coreBaseURL}/ffmpeg-core.wasm`, "application/wasm")
+        });
+
+        statusEl.textContent = "Durum: FFmpeg başarıyla yüklendi ve hazır!";
+        statusEl.style.color = "#4ade80";
+        log("Tebrikler! Worker ve WASM hatasız yüklendi.");
+        
+        // Örnek: ffmpeg versiyonunu terminale yazdır
+        await ffmpeg.exec(["-version"]);
+
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Hata oluştu! Konsolu veya logları kontrol edin.";
+        statusEl.style.color = "#f87171";
+        log("HATA: " + err.message);
+        loadBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
+>Stereo</option>
           </select>
         </div>
 
